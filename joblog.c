@@ -70,25 +70,36 @@ int joblog_init(proc_t *proc) {
  */
 job_t *joblog_read(proc_t *proc, int entry_num, job_t *job) {
 
+    int init_errno = errno;
+
+    if (proc == NULL || entry_num < 0) {
+        return NULL;
+    }
 
     char *logname = new_log_name(proc);
-
-    FILE *fptr = fopen(logname, "r");
-    int count = 0;
-    if (fptr != NULL) {
-
-        char line[JOB_STR_SIZE]; /* or other suitable maximum line size */
-        while (fgets(line, JOB_STR_SIZE, fptr) != NULL) /* read a line */
-        {
-            if(count == entry_num){
-                break;
-            }
-            count++;
-        }
-        fclose(fptr);
-    } else {
-        printf("File Not Found");
+    if (logname == NULL) {
+        return NULL;
     }
+    FILE *fptr = fopen(logname, "r");
+
+    if (fptr == NULL) {
+        errno = init_errno;
+        return NULL;
+    }
+
+    int line_number = 0;
+    char line[JOB_STR_SIZE + 1]; /* or other suitable maximum line size */
+    while (fgets(line, JOB_STR_SIZE + 1, fptr)) {
+        if (line_number == entry_num) {
+            line[JOB_STR_SIZE - 1] = '\0';
+            job = str_to_job(line, job);
+            errno = init_errno;
+            return job;
+        }
+        ++line_number;
+    }
+    fclose(fptr);
+    errno = init_errno;
     return NULL;
 }
 
@@ -99,18 +110,41 @@ job_t *joblog_read(proc_t *proc, int entry_num, job_t *job) {
  * - see the hint for joblog_read
  */
 void joblog_write(proc_t *proc, job_t *job) {
+    int init_errno = errno;
     if (proc == NULL || job == NULL) {
         return;
     }
     char *logname = new_log_name(proc);
+    if (logname == NULL) {
+        return;
+    }
     FILE *fptr = fopen(logname, "a+");
+
+    if (fptr == NULL) {
+        errno = init_errno;
+        return;
+    }
+
     fprintf(fptr, "%s\n", job_to_str(job, NULL));
-    fclose(fptr);
+    if (fclose(fptr) != 0) {
+        errno = init_errno;
+    }
 }
 
 /* 
  * TODO: you must implement this function.
  */
 void joblog_delete(proc_t *proc) {
-    return;
+
+    int init_errno = errno;
+
+    char *logname = new_log_name(proc);
+    FILE *fptr = fopen(logname, "r");
+
+    if (fptr == NULL) {
+        errno = init_errno;
+        return;
+    }
+
+    unlink(logname);
 }
