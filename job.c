@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "job.h"
+#include "test/munit/munit.h"
 
 /* 
  * DO NOT EDIT the job_new function.
@@ -19,11 +20,11 @@ job_t *job_new(pid_t pid, unsigned int id, unsigned int priority,
  * TODO: you must implement this function
  */
 job_t *job_copy(job_t *src, job_t *dst) {
-    if (src == NULL) {
+    if (src == NULL || strlen(src->label) != MAX_NAME_SIZE - 1) {
         return NULL;
     }
     if (dst == NULL) {
-        dst = job_new(0, 0, 0, NULL);
+        dst = job_new(src->pid, src->id, src->priority, src->label);
     }
     job_set(dst, src->pid, src->id, src->priority, src->label);
     return dst;
@@ -67,14 +68,17 @@ job_t *job_set(job_t *job, pid_t pid, unsigned int id, unsigned int priority,
     job->pid = pid;
     job->id = id;
     job->priority = priority;
-    if (label == NULL) {
-        strcpy(job->label, PAD_STRING);
+
+    if (label == NULL || strlen(label) == 0) {
+        strncpy(job->label, PAD_STRING, MAX_NAME_SIZE);
     } else {
         strncpy(job->label, label, MAX_NAME_SIZE - 1);
         if (strlen(job->label) < MAX_NAME_SIZE - 1) {
-            strncat(job->label, PAD_STRING, MAX_NAME_SIZE - strlen(label) - 1);
+            strncat(job->label, PAD_STRING, MAX_NAME_SIZE - strlen(job->label) - 1);
         }
+        job->label[MAX_NAME_SIZE - 1] = '\0';
     }
+
     return job;
 }
 
@@ -85,7 +89,7 @@ job_t *job_set(job_t *job, pid_t pid, unsigned int id, unsigned int priority,
  *      and the documentation in job.h for when to do dynamic allocation
  */
 char *job_to_str(job_t *job, char *str) {
-    if (strlen(job->label) >= MAX_NAME_SIZE) {
+    if (job == NULL || strlen(job->label) != MAX_NAME_SIZE - 1) {
         return NULL;
     }
     if (str == NULL) {
@@ -94,8 +98,17 @@ char *job_to_str(job_t *job, char *str) {
             return NULL;
         }
     }
-    snprintf(str, JOB_STR_SIZE, JOB_STR_FMT, job->pid, job->id, job->priority, job->label);
+    (void) snprintf(str, JOB_STR_SIZE, JOB_STR_FMT, job->pid, job->id, job->priority, job->label);
     return str;
+}
+
+int char_index(char c, char *string) {
+    for (int i = 0; string[i] != '\0'; i++)
+        if (string[i] == c)
+            return i;
+
+    return -1;
+
 }
 
 /*
@@ -104,18 +117,29 @@ char *job_to_str(job_t *job, char *str) {
  * - see the hint for job_to_str
  */
 job_t *str_to_job(char *str, job_t *job) {
-
-
     int pid;
     unsigned int id;
     unsigned int priority;
     char label[MAX_NAME_SIZE];
 
-    sscanf(str, JOB_STR_FMT, &pid, &id, &priority, label);
+    if (str == NULL || strlen(str) != JOB_STR_SIZE - 1) {
+        return NULL;
+    }
+    int res = sscanf(str, JOB_STR_FMT, &pid, &id, &priority, label);
 
+    if(res != 4){
+        return NULL;
+    }
+    int star_index = char_index('*', label);
+
+    if (star_index != -1) {
+        label[star_index] = '\0';
+    }
     if (job == NULL) {
         job = job_new(pid, id, priority, label);
-    } else { job_set(job, pid, id, priority, label); }
+    } else {
+        job_set(job, pid, id, priority, label);
+    }
 
     return job;
 }
