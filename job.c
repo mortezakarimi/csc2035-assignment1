@@ -6,6 +6,8 @@
 #include <string.h>
 #include <stdio.h>
 #include "job.h"
+#include "errno.h"
+#include "test/munit.h"
 
 /* 
  * DO NOT EDIT the job_new function.
@@ -19,13 +21,21 @@ job_t *job_new(pid_t pid, unsigned int id, unsigned int priority,
  * TODO: you must implement this function
  */
 job_t *job_copy(job_t *src, job_t *dst) {
-    if (src == NULL || strlen(src->label) != MAX_NAME_SIZE - 1) {
+    if (src == NULL) {
         return NULL;
+    }
+    if (strlen(src->label) != MAX_NAME_SIZE - 1) {
+        errno = MAX_NAME_SIZE;
+        return NULL;
+    }
+    if (job_is_equal(src, dst)) {
+        return dst;
     }
     if (dst == NULL) {
         dst = job_new(src->pid, src->id, src->priority, src->label);
+        return dst;
     }
-    job_set(dst, src->pid, src->id, src->priority, src->label);
+    dst = job_set(dst, src->pid, src->id, src->priority, src->label);
     return dst;
 }
 
@@ -42,7 +52,7 @@ void job_init(job_t *job) {
  * TODO: you must implement this function
  */
 bool job_is_equal(job_t *j1, job_t *j2) {
-    if (j1 == NULL && j2 == NULL) {
+    if ((j1 == NULL && j2 == NULL) || j1 == j2) {
         return true;
     } else if (j1 != NULL && j2 != NULL) {
         return j1->pid == j2->pid && j1->id == j2->id && j1->priority == j2->priority &&
@@ -126,7 +136,7 @@ job_t *str_to_job(char *str, job_t *job) {
     }
     int res = sscanf(str, JOB_STR_FMT, &pid, &id, &priority, label);
 
-    if(res != 4){
+    if (res != 4) {
         return NULL;
     }
     int star_index = char_index('*', label);
@@ -137,7 +147,7 @@ job_t *str_to_job(char *str, job_t *job) {
     if (job == NULL) {
         job = job_new(pid, id, priority, label);
     } else {
-        job_set(job, pid, id, priority, label);
+        job = job_set(job, pid, id, priority, label);
     }
 
     return job;
