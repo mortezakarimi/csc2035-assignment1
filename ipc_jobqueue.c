@@ -120,5 +120,8 @@ int ipc_jobqueue_space(ipc_jobqueue_t *ijq) {
  * - look at how the ipc_jobqueue is allocated in ipc_jobqueue_new
  */
 void ipc_jobqueue_delete(ipc_jobqueue_t *ijq) {
-    return;
+    if (ijq == NULL) {
+        return;
+    }
+    ipc_delete(ijq);
 }

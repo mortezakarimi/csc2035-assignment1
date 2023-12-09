@@ -164,5 +164,11 @@ int pri_jobqueue_space(pri_jobqueue_t *pjq) {
  *      - see pri_jobqeue_new
  */
 void pri_jobqueue_delete(pri_jobqueue_t *pjq) {
-    return;
+    if (pjq == NULL) {
+        return;
+    }
+    for (int i = 0; i < pjq->buf_size; ++i) {
+        job_delete(&pjq->jobs[i]);
+    }
+    free(pjq);
 }

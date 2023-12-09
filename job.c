@@ -159,5 +159,8 @@ job_t *str_to_job(char *str, job_t *job) {
  * - look at the allocation of a job in job_new
  */
 void job_delete(job_t *job) {
-    return;
+    if (job == NULL) {
+        return;
+    }
+    free(job);
 }
